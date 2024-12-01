@@ -10,6 +10,8 @@ const config = {
   WEBSOCKET_PORT: process.env.WEBSOCKET_PORT || 4000,
   WEBHOOK_URL: process.env.WEBHOOK_URL,
   BASE_SEPOLIA_CHAIN_ID: 84532,
+  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  RPC_URL: process.env.RPC_URL,
 };
 
 module.exports = { config };

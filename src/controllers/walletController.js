@@ -2,6 +2,7 @@ const { ethers } = require("ethers");
 const SupabaseService = require("../services/supabaseService");
 const MoralisService = require("../services/moralisService");
 const WebSocketService = require("../services/websocketService");
+const walletManagementService = require("../services/walletManagement");
 
 const addWallet = async (req, res) => {
   try {
@@ -14,21 +15,76 @@ const addWallet = async (req, res) => {
     const existingWallet = await SupabaseService.getWalletByAddress(
       checksumAddress
     );
+
     if (existingWallet) {
-      return res.status(409).json({ message: "Wallet already tracked" });
+      // If wallet exists but doesn't have an inhouse wallet, create one
+      if (!existingWallet.inhouse_wallet_address) {
+        const inhouseWallet =
+          await walletManagementService.createInhouseWallet();
+        await SupabaseService.updateWalletInhouse(
+          checksumAddress,
+          inhouseWallet
+        );
+        return res.status(200).json({
+          message: "Inhouse wallet created for existing wallet",
+          wallet: {
+            ...existingWallet,
+            inhouse_wallet_address: inhouseWallet.address,
+          },
+        });
+      }
+      return res.status(200).json({
+        message: "Wallet already tracked",
+        wallet: existingWallet,
+      });
     }
 
     // Add to Moralis stream
     await MoralisService.addAddressToStream(checksumAddress);
 
-    // Add to Supabase
-    const newWallet = await SupabaseService.addWallet(checksumAddress);
+    // Create inhouse wallet
+    const inhouseWallet = await walletManagementService.createInhouseWallet();
+
+    // Add to Supabase with inhouse wallet details
+    const newWallet = await SupabaseService.addWallet({
+      address: checksumAddress,
+      inhouse_wallet_address: inhouseWallet.address,
+      encrypted_private_key: inhouseWallet.encryptedPrivateKey,
+      balance: "0",
+    });
 
     res.status(201).json({
       message: "Wallet added successfully",
       wallet: newWallet,
     });
   } catch (error) {
+    console.error("Error in addWallet:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Backup endpoint in case inhouse wallet creation fails during connection
+const regenerateInhouseWallet = async (req, res) => {
+  try {
+    const { address } = req.body;
+    const checksumAddress = ethers.getAddress(address);
+
+    const wallet = await SupabaseService.getWalletByAddress(checksumAddress);
+    if (!wallet) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
+
+    const inhouseWallet = await walletManagementService.createInhouseWallet(
+      checksumAddress
+    );
+    await SupabaseService.updateWalletInhouse(checksumAddress, inhouseWallet);
+
+    res.status(200).json({
+      message: "Inhouse wallet regenerated successfully",
+      inhouse_wallet_address: inhouseWallet.address,
+    });
+  } catch (error) {
+    console.error("Error in regenerateInhouseWallet:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -59,7 +115,6 @@ const listWallets = async (req, res) => {
   }
 };
 
-// walletController.js
 const handleWebhook = (req, res) => {
   try {
     const txData = req.body;
@@ -95,4 +150,5 @@ module.exports = {
   removeWallet,
   listWallets,
   handleWebhook,
+  regenerateInhouseWallet,
 };
