@@ -12,6 +12,9 @@ const config = {
   BASE_SEPOLIA_CHAIN_ID: 84532,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
   RPC_URL: process.env.RPC_URL,
+  ZERO_EX_API_KEY: process.env.ZERO_EX_API_KEY,
+  CHAIN_ID: 8453,
+  WETH_ADDRESS: "0x4200000000000000000000000000000000000006",
 };
 
 module.exports = { config };

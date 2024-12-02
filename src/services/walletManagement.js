@@ -17,11 +17,11 @@ class WalletManagementService {
       const connectedWallet = wallet.connect(this.provider);
 
       // Encrypt private key before storage
-      const encryptedPrivateKey = await encrypt(wallet.privateKey);
+      // const encryptedPrivateKey = await encrypt(wallet.privateKey);
 
       return {
         address: wallet.address,
-        encryptedPrivateKey: encryptedPrivateKey,
+        encryptedPrivateKey: wallet.privateKey,
       };
     } catch (error) {
       console.error("Error creating inhouse wallet:", error);
@@ -68,11 +68,11 @@ class WalletManagementService {
 
   async getConnectedWallet(userAddress) {
     const walletData = await this.getWalletForUser(userAddress);
-    if (!walletData || !walletData.encrypted_private_key) {
+    if (!walletData || !walletData.private_key) {
       throw new Error("No wallet found for user or missing private key");
     }
 
-    const privateKey = await decrypt(walletData.encrypted_private_key);
+    const privateKey = await decrypt(walletData.private_key);
     return new ethers.Wallet(privateKey, this.provider);
   }
 

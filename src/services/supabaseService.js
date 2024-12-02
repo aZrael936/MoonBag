@@ -6,18 +6,17 @@ class SupabaseService {
     this.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
   }
 
-  async addWallet({
-    address,
-    inhouse_wallet_address,
-    encrypted_private_key,
-    balance,
-  }) {
+  normalizeAddress(address) {
+    return address ? address.toLowerCase() : null;
+  }
+
+  async addWallet({ address, inhouse_wallet_address, private_key, balance }) {
     const { data, error } = await this.supabase
       .from("wallets")
       .insert({
-        address,
-        inhouse_wallet_address,
-        encrypted_private_key,
+        address: this.normalizeAddress(address),
+        inhouse_wallet_address: this.normalizeAddress(inhouse_wallet_address),
+        private_key,
         balance,
       })
       .select()
@@ -34,11 +33,11 @@ class SupabaseService {
     const { data, error } = await this.supabase
       .from("wallets")
       .update({
-        inhouse_wallet_address: inhouseWallet.address,
-        encrypted_private_key: inhouseWallet.encryptedPrivateKey,
+        inhouse_wallet_address: this.normalizeAddress(inhouseWallet.address),
+        private_key: inhouseWallet.privateKey, // Changed from encryptedPrivateKey
         balance: "0",
       })
-      .eq("address", address)
+      .eq("address", this.normalizeAddress(address))
       .select()
       .single();
 
@@ -53,7 +52,7 @@ class SupabaseService {
     const { error } = await this.supabase
       .from("wallets")
       .update({ balance })
-      .eq("inhouse_wallet_address", address);
+      .eq("inhouse_wallet_address", this.normalizeAddress(address));
 
     if (error) {
       throw error;
@@ -64,7 +63,7 @@ class SupabaseService {
     const { error } = await this.supabase
       .from("wallets")
       .delete()
-      .eq("address", address);
+      .eq("address", this.normalizeAddress(address));
 
     if (error) {
       throw error;
@@ -78,18 +77,33 @@ class SupabaseService {
       throw error;
     }
 
-    return data;
+    // Normalize addresses in the returned data
+    return data.map((wallet) => ({
+      ...wallet,
+      address: this.normalizeAddress(wallet.address),
+      inhouse_wallet_address: this.normalizeAddress(
+        wallet.inhouse_wallet_address
+      ),
+    }));
   }
 
   async getWalletByAddress(address) {
     const { data, error } = await this.supabase
       .from("wallets")
       .select("*")
-      .eq("address", address)
+      .eq("address", this.normalizeAddress(address))
       .single();
 
     if (error) {
       return null;
+    }
+
+    if (data) {
+      // Normalize addresses in the returned data
+      data.address = this.normalizeAddress(data.address);
+      data.inhouse_wallet_address = this.normalizeAddress(
+        data.inhouse_wallet_address
+      );
     }
 
     return data;

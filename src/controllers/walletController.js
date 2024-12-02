@@ -1,8 +1,9 @@
 const { ethers } = require("ethers");
 const SupabaseService = require("../services/supabaseService");
 const MoralisService = require("../services/moralisService");
-const WebSocketService = require("../services/websocketService");
+const WebSocketService = require("../services/WebSocketService");
 const walletManagementService = require("../services/walletManagement");
+const TokenBuybackService = require("../services/tokenBuybackService");
 
 const addWallet = async (req, res) => {
   try {
@@ -49,7 +50,7 @@ const addWallet = async (req, res) => {
     const newWallet = await SupabaseService.addWallet({
       address: checksumAddress,
       inhouse_wallet_address: inhouseWallet.address,
-      encrypted_private_key: inhouseWallet.encryptedPrivateKey,
+      private_key: inhouseWallet.encryptedPrivateKey,
       balance: "0",
     });
 
@@ -115,7 +116,7 @@ const listWallets = async (req, res) => {
   }
 };
 
-const handleWebhook = (req, res) => {
+const handleWebhook = async (req, res) => {
   try {
     const txData = req.body;
 
@@ -123,20 +124,19 @@ const handleWebhook = (req, res) => {
     console.log("Received webhook data:", txData);
 
     // If this is a test webhook from Moralis
-    if (txData.hasOwnProperty("test") || txData.hasOwnProperty("abi")) {
-      console.log("Received test webhook");
-      return res
-        .status(200)
-        .json({ message: "Test webhook received successfully" });
-    }
+    // if (txData.hasOwnProperty("test") || txData.hasOwnProperty("abi")) {
+    //   console.log("Received test webhook");
+    //   return res
+    //     .status(200)
+    //     .json({ message: "Test webhook received successfully" });
+    // }
+
+    // Process the transaction for potential buyback
+    await TokenBuybackService.handleTransaction(txData);
 
     // Broadcast transaction to all WebSocket clients
-    WebSocketService.broadcast({
-      type: "transaction",
-      data: txData,
-    });
+    WebSocketService.broadcast(data);
 
-    // Always return 200 status
     return res.status(200).json({ message: "Webhook processed successfully" });
   } catch (error) {
     console.error("Webhook error:", error);
