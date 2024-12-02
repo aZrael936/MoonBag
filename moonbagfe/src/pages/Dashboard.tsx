@@ -1,8 +1,8 @@
-import { motion } from 'framer-motion';
-import { LineChart, Wallet, History } from 'lucide-react';
-import { useMoonbagState } from '../hooks/useMoonbagState';
-import { MoonbagChart } from '../components/charts/MoonbagChart';
-import { TokenPerformance } from '../components/TokenPerformance';
+import { motion } from "framer-motion";
+import { LineChart, Wallet, History } from "lucide-react";
+import { useMoonbagState } from "../hooks/useMoonbagState";
+import { MoonbagChart } from "../components/charts/MoonbagChart";
+import { TokenPerformance } from "../components/TokenPerformance";
 
 export function Dashboard() {
   const { moonbags, transactions } = useMoonbagState();
@@ -16,22 +16,22 @@ export function Dashboard() {
       >
         {[
           {
-            title: 'Total Value Locked',
-            value: '$2,456.78',
+            title: "Total Value Locked",
+            value: "$20",
             icon: <Wallet className="w-6 h-6 text-blue-400" />,
-            change: '+12.5%',
+            change: "+12.5%",
           },
           {
-            title: 'Active Moonbags',
-            value: '5',
+            title: "Active Moonbags",
+            value: "5",
             icon: <LineChart className="w-6 h-6 text-purple-400" />,
-            change: '+2',
+            change: "+2",
           },
           {
-            title: 'Total Transactions',
-            value: '24',
+            title: "Total Transactions",
+            value: "24",
             icon: <History className="w-6 h-6 text-indigo-400" />,
-            change: '+3',
+            change: "+3",
           },
         ].map((stat, index) => (
           <motion.div
@@ -43,7 +43,13 @@ export function Dashboard() {
           >
             <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-gray-700/50 rounded-lg">{stat.icon}</div>
-              <span className={`text-sm ${stat.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
+              <span
+                className={`text-sm ${
+                  stat.change.startsWith("+")
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
                 {stat.change}
               </span>
             </div>

@@ -1,13 +1,20 @@
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 
 const data = [
-  { date: '1 Mar', value: 1000 },
-  { date: '2 Mar', value: 1200 },
-  { date: '3 Mar', value: 1100 },
-  { date: '4 Mar', value: 1400 },
-  { date: '5 Mar', value: 1300 },
-  { date: '6 Mar', value: 1600 },
-  { date: '7 Mar', value: 2000 },
+  { date: "1 Dec", value: 10 },
+  { date: "2 Dec", value: 12 },
+  { date: "3 Dec", value: 11 },
+  { date: "4 Dec", value: 14 },
+  { date: "5 Dec", value: 13 },
+  { date: "6 Dec", value: 16 },
+  { date: "7 Dec", value: 20 },
 ];
 
 export function MoonbagChart() {
@@ -25,20 +32,20 @@ export function MoonbagChart() {
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            tick={{ fill: "#9CA3AF", fontSize: 12 }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            tick={{ fill: "#9CA3AF", fontSize: 12 }}
             tickFormatter={(value) => `$${value}`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1F2937',
-              border: 'none',
-              borderRadius: '0.5rem',
-              color: '#fff',
+              backgroundColor: "#1F2937",
+              border: "none",
+              borderRadius: "0.5rem",
+              color: "#fff",
             }}
           />
           <Area
