@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { TrendingUp, Shield, Brain, ChevronDown, Star } from "lucide-react";
+import { TrendingUp, Shield, Brain, ChevronDown } from "lucide-react";
 import { ConnectKitButton } from "connectkit";
 
 export function LandingPage() {
@@ -88,11 +88,17 @@ export function LandingPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"
           />
-          <h1 className="text-5xl sm:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">
-            Trade Smarter,
+          <motion.h1
+            className="font-display text-5xl sm:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-200 tracking-tight"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Be in the Trenches,
             <br />
-            Hold Stronger
-          </h1>
+            Agent is gonna make smart trades for you
+          </motion.h1>
+
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Let AI secure your upside potential while you focus on finding the
             next big opportunity.
@@ -206,7 +212,6 @@ export function LandingPage() {
                 transition={{ delay: index * 0.1 }}
                 className="bg-gray-800/30 p-6 rounded-xl backdrop-blur-sm text-left"
               >
-                <Star className="w-6 h-6 text-yellow-400 mb-4" />
                 <p className="text-gray-300 mb-4">{exp.quote}</p>
                 <div>
                   <p className="font-medium">{exp.author}</p>
