@@ -27,8 +27,8 @@ This is the Repo for MoonBag, A project Build for Unfold '24
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/moonbag-agent.git
-cd moonbag-agent
+git clone https://github.com/aZrael936/MoonBag.git
+cd moonbagfe
 ```
 
 2. Install dependencies:
