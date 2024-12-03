@@ -10,6 +10,7 @@ import {
   concat,
   numberToHex,
   size,
+  parseEther,
 } from "viem";
 import type { Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -59,13 +60,13 @@ const weth = getContract({
 
 const main = async () => {
   // specify sell amount
-  const sellAmount = parseUnits("1", await usdc.read.decimals());
+  const sellAmount = parseEther("0.0001");
 
   // 1. fetch price
   const priceParams = new URLSearchParams({
     chainId: client.chain.id.toString(),
-    sellToken: usdc.address,
-    buyToken: weth.address,
+    sellToken: weth.address,
+    buyToken: usdc.address,
     sellAmount: sellAmount.toString(),
     taker: client.account.address,
   });

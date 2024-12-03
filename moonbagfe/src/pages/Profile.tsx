@@ -1,7 +1,8 @@
-import { motion } from 'framer-motion';
-import { Settings, Bell, Shield, ChevronRight } from 'lucide-react';
-import { useAccount } from 'wagmi';
-import { useWalletCreation } from '../hooks/useWalletCreation';
+import { motion } from "framer-motion";
+import { Settings, Bell, Shield, ChevronRight } from "lucide-react";
+import { useAccount } from "wagmi";
+import { useWalletCreation } from "../hooks/useWalletCreation";
+import { WETHBalance } from "../components/WETHBalance";
 
 export function Profile() {
   const { address } = useAccount();
@@ -9,26 +10,26 @@ export function Profile() {
 
   const settings = [
     {
-      category: 'Trading Settings',
+      category: "Trading Settings",
       items: [
         {
-          title: 'Moonbag Size',
-          description: 'Adjust the default size of your moonbags',
+          title: "Moonbag Size",
+          description: "Adjust the default size of your moonbags",
           icon: <Settings className="w-5 h-5" />,
         },
         {
-          title: 'Auto-Buy Threshold',
-          description: 'Set minimum requirements for automated purchases',
+          title: "Auto-Buy Threshold",
+          description: "Set minimum requirements for automated purchases",
           icon: <Shield className="w-5 h-5" />,
         },
       ],
     },
     {
-      category: 'Notifications',
+      category: "Notifications",
       items: [
         {
-          title: 'Alert Preferences',
-          description: 'Customize when and how you receive alerts',
+          title: "Alert Preferences",
+          description: "Customize when and how you receive alerts",
           icon: <Bell className="w-5 h-5" />,
         },
       ],
@@ -41,6 +42,8 @@ export function Profile() {
       animate={{ opacity: 1 }}
       className="max-w-4xl mx-auto space-y-6"
     >
+      <WETHBalance />
+
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6">
         <h2 className="text-xl font-semibold mb-4">Connected Wallets</h2>
         <div className="space-y-4">
