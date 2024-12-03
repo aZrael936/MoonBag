@@ -19,9 +19,22 @@ const { config } = require("../config/env");
 const { wethAbi } = require("../abi/abis");
 
 class TokenBuybackService {
-  constructor() {
+  constructor(BUYBACK_PERCENTAGE) {
     this.WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
-    this.BUYBACK_PERCENTAGE = 10; // 10%
+    this.walletService = require("./walletManagement");
+    this.BUYBACK_PERCENTAGE;
+  }
+
+  async getBuybackPercentage(walletAddress) {
+    try {
+      const walletData = await this.walletService.getWalletForUser(
+        walletAddress
+      );
+      return walletData.moonbag_percent || 10; // Default to 10% if not set
+    } catch (error) {
+      console.error("Error fetching buyback percentage:", error);
+      return 10; // Default fallback
+    }
   }
 
   // Wallet Creation
@@ -178,6 +191,8 @@ class TokenBuybackService {
       const walletData = await SupabaseService.getWalletByAddress(
         transfer.from
       );
+
+      this.BUYBACK_PERCENTAGE = await this.getBuybackPercentage(transfer.from);
 
       if (!walletData) {
         console.log(
