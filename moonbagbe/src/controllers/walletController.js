@@ -118,7 +118,7 @@ const listWallets = async (req, res) => {
 };
 
 const getWallet = async (req, res) => {
-  const { address } = req.body;
+  const address = req.params.wallet_address;
 
   try {
     const wallets = await SupabaseService.getWalletByAddress(address);
