@@ -3,7 +3,6 @@ const { config } = require("../config/env");
 
 class MoralisService {
   constructor() {
-    // Set your existing stream ID here
     this.streamId = config.MORALIS_STREAM_ID; // Add this to your config
     this.init();
   }

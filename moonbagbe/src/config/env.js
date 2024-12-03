@@ -13,8 +13,8 @@ const config = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
   RPC_URL: process.env.RPC_URL,
   ZERO_EX_API_KEY: process.env.ZERO_EX_API_KEY,
-  CHAIN_ID: 8453,
-  WETH_ADDRESS: "0x4200000000000000000000000000000000000006",
+  CHAIN_ID: process.env.CHAIN_ID,
+  WETH_ADDRESS: process.env.WETH_ADDRESS,
 };
 
 module.exports = { config };

@@ -4,6 +4,9 @@ const { config } = require("./config/env");
 const walletRoutes = require("./routes/walletRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
 const WebSocketService = require("./services/websocketService");
+const swaggerUi = require("swagger-ui-express");
+const YAML = require("yamljs");
+const swaggerDocument = YAML.load("./swagger.yaml");
 
 class App {
   constructor() {
@@ -20,6 +23,11 @@ class App {
   initializeRoutes() {
     this.app.use("/api/wallets", walletRoutes);
     this.app.use("/api/transaction", transactionRoutes);
+    this.app.use(
+      "/api-docs",
+      swaggerUi.serve,
+      swaggerUi.setup(swaggerDocument)
+    );
   }
 
   start() {
