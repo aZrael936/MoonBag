@@ -16,23 +16,17 @@ const { privateKeyToAccount } = require("viem/accounts");
 const { base } = require("viem/chains");
 const SupabaseService = require("./supabaseService");
 const { config } = require("../config/env");
+const { wethAbi } = require("../abi/abis");
 
 class TokenBuybackService {
   constructor() {
-    this.headers = {
-      "Content-Type": "application/json",
-      "0x-api-key": config.ZERO_EX_API_KEY,
-      "0x-version": "v2",
-    };
+    this.WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
+    this.BUYBACK_PERCENTAGE = 10; // 10%
   }
 
+  // Wallet Creation
   async createWalletClient(privateKey) {
-    const cleanPrivateKey = privateKey.replace("0x", "");
-    if (cleanPrivateKey.length !== 64) {
-      throw new Error(
-        `Invalid private key length: ${cleanPrivateKey.length}. Expected 64 characters`
-      );
-    }
+    const cleanPrivateKey = this._sanitizePrivateKey(privateKey);
     return createWalletClient({
       account: privateKeyToAccount(`0x${cleanPrivateKey}`),
       chain: base,
@@ -40,184 +34,220 @@ class TokenBuybackService {
     }).extend(publicActions);
   }
 
-  async handleTransaction(txData) {
+  _sanitizePrivateKey(privateKey) {
+    const cleanPrivateKey = privateKey.replace("0x", "");
+    if (cleanPrivateKey.length !== 64) {
+      throw new Error(
+        `Invalid private key length: ${cleanPrivateKey.length}. Expected 64 characters`
+      );
+    }
+    return cleanPrivateKey;
+  }
+
+  // Contract Interactions
+  _getWethContract(client) {
+    return getContract({
+      address: this.WETH_ADDRESS,
+      abi: wethAbi,
+      client,
+    });
+  }
+
+  _getTokenContract(tokenAddress, client) {
+    return getContract({
+      address: getAddress(tokenAddress),
+      abi: erc20Abi,
+      client,
+    });
+  }
+
+  // Price and Quote Functions
+  async _getPriceQuote(params, headers) {
+    const response = await fetch(
+      "https://api.0x.org/swap/permit2/price?" + params.toString(),
+      { headers }
+    );
+    return response.json();
+  }
+
+  async _getSwapQuote(params, headers) {
+    const response = await fetch(
+      "https://api.0x.org/swap/permit2/quote?" + params.toString(),
+      { headers }
+    );
+    return response.json();
+  }
+
+  // Token Approval
+  async _handleTokenApproval(weth, price, client) {
+    if (price.issues.allowance !== null) {
+      try {
+        const { request } = await weth.simulate.approve([
+          price.issues.allowance.spender,
+          maxUint256,
+        ]);
+        console.log("Approving Permit2 to spend WETH...", request);
+
+        const hash = await weth.write.approve(request.args);
+        const receipt = await client.waitForTransactionReceipt({ hash });
+        console.log("Approved Permit2 to spend WETH.", receipt);
+      } catch (error) {
+        console.log("Error approving Permit2:", error);
+        throw error;
+      }
+    } else {
+      console.log("Token already approved for Permit2");
+    }
+  }
+
+  // Transaction Execution
+  async _executeTransaction(quote, client) {
+    const nonce = await client.getTransactionCount({
+      address: client.account.address,
+    });
+
+    const signedTransaction = await client.signTransaction({
+      account: client.account,
+      chain: client.chain,
+      gas: quote?.transaction.gas ? BigInt(quote.transaction.gas) : undefined,
+      to: quote?.transaction.to,
+      data: quote.transaction.data,
+      value: quote?.transaction.value
+        ? BigInt(quote.transaction.value)
+        : undefined,
+      gasPrice: quote?.transaction.gasPrice
+        ? BigInt(quote.transaction.gasPrice)
+        : undefined,
+      nonce: nonce,
+    });
+
+    return client.sendRawTransaction({
+      serializedTransaction: signedTransaction,
+    });
+  }
+
+  // Transaction Receipt Handling
+  async _handleTransactionReceipt(hash, client) {
     try {
-      if (!this.isERC20Transfer(txData)) {
-        return;
-      }
-
-      const transfer = txData.erc20Transfers[0];
-      const from = transfer.from;
-
-      const walletData = await SupabaseService.getWalletByAddress(from);
-      if (!walletData) {
-        console.log("Ignoring transaction: wallet not being tracked:", from);
-        return;
-      }
-
-      console.log("Detected sell from tracked wallet:", from);
-
-      // Create wallet client for inhouse wallet
-      console.log("Privatekey: ", walletData.private_key);
-      const client = await this.createWalletClient(walletData.private_key);
-
-      // Check WETH balance first
-      const wethContract = getContract({
-        address: config.WETH_ADDRESS,
-        abi: erc20Abi,
-        client,
+      const receipt = await client.waitForTransactionReceipt({ hash });
+      console.log("Transaction Receipt:", {
+        status: receipt.status,
+        gasUsed: receipt.gasUsed.toString(),
+        effectiveGasPrice: receipt.effectiveGasPrice.toString(),
+        blockNumber: receipt.blockNumber,
+        logs: receipt.logs,
       });
 
-      const wethBalance = await wethContract.read.balanceOf([
-        walletData.inhouse_wallet_address,
-      ]);
-      console.log("WETH Balance: ", wethBalance);
+      if (receipt.status === 0) {
+        console.error("Transaction failed");
+      }
+      return receipt;
+    } catch (error) {
+      console.error("Error getting transaction receipt:", error);
+      throw error;
+    }
+  }
 
-      if (wethBalance <= 0n) {
-        console.log("No WETH balance in inhouse wallet, skipping swap");
+  // Permit2 Signature Handling
+  _handlePermit2Signature(quote, signature) {
+    if (signature && quote?.transaction?.data) {
+      const signatureLengthInHex = numberToHex(size(signature), {
+        signed: false,
+        size: 32,
+      });
+      return concat([quote.transaction.data, signatureLengthInHex, signature]);
+    }
+    return quote.transaction.data;
+  }
+
+  // Utility Functions
+  isERC20Transfer(txData) {
+    return Boolean(txData?.erc20Transfers?.length > 0);
+  }
+
+  calculateBuybackAmount(value, decimals) {
+    return (value * BigInt(this.BUYBACK_PERCENTAGE)) / BigInt(100);
+  }
+
+  // Main Transaction Handler
+  async handleTransaction(txData) {
+    try {
+      if (!this.isERC20Transfer(txData)) return;
+
+      const transfer = txData.erc20Transfers[0];
+      const walletData = await SupabaseService.getWalletByAddress(
+        transfer.from
+      );
+
+      if (!walletData) {
+        console.log(
+          "Ignoring transaction: wallet not being tracked:",
+          transfer.from
+        );
         return;
       }
 
-      // Check ETH for gas
+      console.log("Detected sell from tracked wallet:", transfer.from);
+
+      // Setup
+      const client = await this.createWalletClient(walletData.private_key);
       const ethBalance = await client.getBalance({
         address: walletData.inhouse_wallet_address,
       });
 
-      if (ethBalance < parseUnits("0.0001", 18)) {
-        console.log("Insufficient ETH for gas, skipping swap");
-        return;
-      }
+      const sellAmount = this.calculateBuybackAmount(ethBalance, 18);
+      const weth = this._getWethContract(client);
+      const buyToken = this._getTokenContract(transfer.contract, client);
 
-      // If we have both WETH and ETH, proceed with swap
-      const tokenAddress = getAddress(transfer.contract);
-      const buyAmount = this.calculateBuybackAmount(
-        BigInt(transfer.value),
-        transfer.tokenDecimals
-      );
-
-      const header = {
+      // API Setup
+      const headers = new Headers({
         "Content-Type": "application/json",
         "0x-api-key": config.ZERO_EX_API_KEY,
         "0x-version": "v2",
-      };
-      console.log(
-        "chainId: ",
-        client.chain.id.toString(),
-        "sellToken: ",
-        config.WETH_ADDRESS,
-        "buyToken: ",
-        tokenAddress,
-        "buyAmount: ",
-        buyAmount.toString(),
-        "taker: ",
-        walletData.inhouse_wallet_address,
-        "Header: ",
-        header
-      );
-
-      // Get price quote from 0x
-      const priceParams = new URLSearchParams({
-        chainId: client.chain.id.toString(),
-        sellToken: config.WETH_ADDRESS,
-        buyToken: tokenAddress,
-        buyAmount: buyAmount.toString(),
-        taker: walletData.inhouse_wallet_address,
       });
 
-      const priceResponse = await fetch(
-        "https://api.0x.org/swap/permit2/price?" + priceParams.toString(),
-        { headers: header }
-      );
-      const price = await priceResponse.json();
-      console.log("PriceJSON: ", price);
+      const priceParams = new URLSearchParams({
+        chainId: client.chain.id.toString(),
+        sellToken: weth.address,
+        buyToken: getAddress(transfer.contract),
+        sellAmount: sellAmount.toString(),
+        taker: client.account.address,
+      });
 
-      if (BigInt(price.buyAmount) > wethBalance) {
-        console.log("Insufficient WETH for swap, skipping");
+      // Get Price and Handle Approval
+      const price = await this._getPriceQuote(priceParams, headers);
+      await this._handleTokenApproval(weth, price, client);
+
+      // Gas Check
+      const estimatedGas = price.gas
+        ? BigInt(price.gas) * BigInt(price.gasPrice)
+        : 0n;
+      if (estimatedGas > ethBalance) {
+        console.log("Insufficient gas, skipping");
         return;
       }
 
-      // Approve WETH spending if needed
-      if (price.issues?.allowance !== null) {
-        const { request } = await wethContract.simulate.approve([
-          price.issues.allowance.spender,
-          maxUint256,
-        ]);
-
-        const hash = await wethContract.write.approve(request.args);
-        await client.waitForTransactionReceipt({ hash });
-        console.log("Approved Permit2 to spend WETH");
-      }
-
-      // Get swap quote
-      const quoteResponse = await fetch(
-        "https://api.0x.org/swap/permit2/quote?" + priceParams.toString(),
-        { headers: this.headers }
-      );
-      const quote = await quoteResponse.json();
-
-      // Handle permit2 signature if needed
+      // Get Quote and Handle Permit2
+      const quote = await this._getSwapQuote(priceParams, headers);
       let signature;
       if (quote.permit2?.eip712) {
         signature = await client.signTypedData(quote.permit2.eip712);
-
-        if (signature && quote?.transaction?.data) {
-          const signatureLengthInHex = numberToHex(size(signature), {
-            signed: false,
-            size: 32,
-          });
-          quote.transaction.data = concat([
-            quote.transaction.data,
-            signatureLengthInHex,
-            signature,
-          ]);
-        }
+        quote.transaction.data = this._handlePermit2Signature(quote, signature);
       }
 
-      // Execute swap
-      if (signature && quote.transaction.data) {
-        const nonce = await client.getTransactionCount({
-          address: client.account.address,
-        });
-
-        const signedTransaction = await client.signTransaction({
-          account: client.account,
-          chain: client.chain,
-          gas: quote?.transaction.gas
-            ? BigInt(quote.transaction.gas)
-            : undefined,
-          to: quote?.transaction.to,
-          data: quote.transaction.data,
-          value: quote?.transaction.value
-            ? BigInt(quote.transaction.value)
-            : undefined,
-          gasPrice: quote?.transaction.gasPrice
-            ? BigInt(quote.transaction.gasPrice)
-            : undefined,
-          nonce: nonce,
-        });
-
-        const hash = await client.sendRawTransaction({
-          serializedTransaction: signedTransaction,
-        });
-
+      // Execute Transaction
+      if (quote.transaction.data) {
+        const hash = await this._executeTransaction(quote, client);
         console.log(`Swap transaction hash: ${hash}`);
         console.log(`See tx details at https://basescan.org/tx/${hash}`);
 
+        // await this._handleTransactionReceipt(hash, client);
         return hash;
       }
     } catch (error) {
       console.error("Error handling transaction:", error);
       return;
     }
-  }
-
-  isERC20Transfer(txData) {
-    return Boolean(txData?.erc20Transfers?.length > 0);
-  }
-
-  calculateBuybackAmount(value, decimals) {
-    const buybackPercentage = 10; // 10%
-    return (value * BigInt(buybackPercentage)) / BigInt(100);
   }
 }
 

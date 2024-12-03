@@ -134,8 +134,8 @@ const handleWebhook = async (req, res) => {
     // Process the transaction for potential buyback
     await TokenBuybackService.handleTransaction(txData);
 
-    // Broadcast transaction to all WebSocket clients
-    WebSocketService.broadcast(data);
+    // // Broadcast transaction to all WebSocket clients
+    // WebSocketService.broadcast(data);
 
     return res.status(200).json({ message: "Webhook processed successfully" });
   } catch (error) {
