@@ -101,6 +101,20 @@ class WalletManagementService {
       throw new Error(`Failed to update wallet balance: ${error.message}`);
     }
   }
+
+  async updateMoonbagPercent(moonbag_percent, walletAddress) {
+    const { error } = await SupabaseService.supabase
+      .from("wallets")
+      .update({
+        moonbag_percent: moonbag_percent,
+        last_updated: new Date().toISOString(),
+      })
+      .eq("inhouse_wallet_address", walletAddress);
+
+    if (error) {
+      throw new Error(`Failed to update wallet balance: ${error.message}`);
+    }
+  }
 }
 
 const service = new WalletManagementService();

@@ -52,6 +52,7 @@ const addWallet = async (req, res) => {
       inhouse_wallet_address: inhouseWallet.address,
       private_key: inhouseWallet.encryptedPrivateKey,
       balance: "0",
+      moonbag_percent: 10,
     });
 
     res.status(201).json({
@@ -134,8 +135,8 @@ const handleWebhook = async (req, res) => {
     // Process the transaction for potential buyback
     await TokenBuybackService.handleTransaction(txData);
 
-    // Broadcast transaction to all WebSocket clients
-    WebSocketService.broadcast(data);
+    // // Broadcast transaction to all WebSocket clients
+    // WebSocketService.broadcast(data);
 
     return res.status(200).json({ message: "Webhook processed successfully" });
   } catch (error) {
@@ -145,10 +146,27 @@ const handleWebhook = async (req, res) => {
   }
 };
 
+const updateMoonbagPercent = async (req, res) => {
+  try {
+    const { moonbag_percent, address } = req.body;
+
+    await walletManagementService.updateMoonbagPercent(
+      moonbag_percent,
+      address
+    );
+
+    return res.status(200).json({ message: "Percent updated successfully" });
+  } catch (error) {
+    console.error("Update error:", error);
+    return res.status(500).json({ message: "Update received with errors" });
+  }
+};
+
 module.exports = {
   addWallet,
   removeWallet,
   listWallets,
   handleWebhook,
   regenerateInhouseWallet,
+  updateMoonbagPercent,
 };
