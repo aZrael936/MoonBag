@@ -117,6 +117,17 @@ const listWallets = async (req, res) => {
   }
 };
 
+const getWallet = async (req, res) => {
+  const { address } = req.body;
+
+  try {
+    const wallets = await SupabaseService.getWalletByAddress(address);
+    res.status(200).json(wallets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const handleWebhook = async (req, res) => {
   try {
     const txData = req.body;
@@ -166,6 +177,7 @@ module.exports = {
   addWallet,
   removeWallet,
   listWallets,
+  getWallet,
   handleWebhook,
   regenerateInhouseWallet,
   updateMoonbagPercent,

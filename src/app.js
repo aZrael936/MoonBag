@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { config } = require("./config/env");
 const walletRoutes = require("./routes/walletRoutes");
+const transactionRoutes = require("./routes/transactionRoutes");
 const WebSocketService = require("./services/websocketService");
 
 class App {
@@ -18,6 +19,7 @@ class App {
 
   initializeRoutes() {
     this.app.use("/api/wallets", walletRoutes);
+    this.app.use("/api/transaction", transactionRoutes);
   }
 
   start() {

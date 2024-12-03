@@ -3,6 +3,7 @@ const {
   addWallet,
   removeWallet,
   listWallets,
+  getWallet,
   handleWebhook,
   regenerateInhouseWallet,
   updateMoonbagPercent,
@@ -12,8 +13,8 @@ const router = Router();
 
 router.post("/add", addWallet);
 router.delete("/remove", removeWallet);
-
 router.post("/update", updateMoonbagPercent);
+router.get("/get", getWallet);
 
 router.get("/list", listWallets);
 router.post("/webhook", handleWebhook);

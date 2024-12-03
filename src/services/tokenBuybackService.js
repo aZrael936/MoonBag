@@ -93,7 +93,7 @@ class TokenBuybackService {
 
   // Token Approval
   async _handleTokenApproval(weth, price, client) {
-    if (price.issues.allowance !== null) {
+    if (price?.issues?.allowance !== null) {
       try {
         const { request } = await weth.simulate.approve([
           price.issues.allowance.spender,
@@ -244,6 +244,7 @@ class TokenBuybackService {
 
       // Get Quote and Handle Permit2
       const quote = await this._getSwapQuote(priceParams, headers);
+      console.log("Quote :", quote);
       let signature;
       if (quote.permit2?.eip712) {
         signature = await client.signTypedData(quote.permit2.eip712);
@@ -253,10 +254,33 @@ class TokenBuybackService {
       // Execute Transaction
       if (quote.transaction.data) {
         const hash = await this._executeTransaction(quote, client);
+
         console.log(`Swap transaction hash: ${hash}`);
         console.log(`See tx details at https://basescan.org/tx/${hash}`);
 
-        // await this._handleTransactionReceipt(hash, client);
+        const receipt = await this._handleTransactionReceipt(hash, client);
+
+        const sellTransfer = txData.erc20Transfers[0];
+        const PRECISION_FACTOR = BigInt(10 ** 18);
+        const tokenPriceInWeth =
+          (BigInt(quote.sellAmount) * PRECISION_FACTOR) /
+          BigInt(quote.buyAmount);
+
+        if (hash) {
+          await SupabaseService.addTransaction({
+            wallet_address: sellTransfer.from,
+            inhouse_wallet_address: walletData.inhouse_wallet_address,
+            original_tx_hash: txData.erc20Transfers[0].transactionHash,
+            buyback_tx_hash: hash,
+            token_address: sellTransfer.contract,
+            sell_amount: sellTransfer.value,
+            buyback_amount: sellAmount.toString(),
+            buyback_percentage: this.BUYBACK_PERCENTAGE,
+            gas_used: receipt.gasUsed.toString(),
+            gas_price: receipt.effectiveGasPrice.toString(),
+            token_price_at_buyback_per_weth: tokenPriceInWeth.toString(),
+          });
+        }
         return hash;
       }
     } catch (error) {
