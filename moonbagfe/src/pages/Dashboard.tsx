@@ -1,11 +1,24 @@
 import { motion } from "framer-motion";
 import { LineChart, Wallet, History } from "lucide-react";
-import { useMoonbagState } from "../hooks/useMoonbagState";
+import { useTransactionData } from "../hooks/useTransactionData";
 import { MoonbagChart } from "../components/charts/MoonbagChart";
 import { TokenPerformance } from "../components/TokenPerformance";
+import { TokenData, TransactionData } from "../types/api";
 
 export function Dashboard() {
-  const { moonbags, transactions } = useMoonbagState();
+  const { transactions, stats, isLoading } = useTransactionData();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
+
+  const totalValue = stats?.totalValue || 0;
+  const activeMoonbags = stats?.activeMoonbags || 0;
+  const totalTransactions = transactions?.length || 0;
 
   return (
     <div className="space-y-6">
@@ -17,23 +30,34 @@ export function Dashboard() {
         {[
           {
             title: "Total Value Locked",
-            value: "$20",
+            value: `$${totalValue.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`,
             icon: <Wallet className="w-6 h-6 text-blue-400" />,
-            change: "+12.5%",
+            change: stats?.valueChange
+              ? `${stats.valueChange > 0 ? "+" : ""}${stats.valueChange}%`
+              : "0%",
           },
           {
             title: "Active Moonbags",
-            value: "5",
+            value: activeMoonbags.toString(),
             icon: <LineChart className="w-6 h-6 text-purple-400" />,
-            change: "+2",
+            change: stats?.moonbagChange
+              ? `${stats.moonbagChange > 0 ? "+" : ""}${stats.moonbagChange}`
+              : "0",
           },
           {
             title: "Total Transactions",
-            value: "24",
+            value: totalTransactions.toString(),
             icon: <History className="w-6 h-6 text-indigo-400" />,
-            change: "+3",
+            change: stats?.transactionChange
+              ? `${stats.transactionChange > 0 ? "+" : ""}${
+                  stats.transactionChange
+                }`
+              : "0",
           },
-        ].map((stat, index) => (
+        ].map((stat, index: number) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
@@ -65,7 +89,7 @@ export function Dashboard() {
         className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6"
       >
         <h2 className="text-xl font-semibold mb-4">Portfolio Performance</h2>
-        <MoonbagChart />
+        <MoonbagChart data={stats?.chartData || []} />
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -76,14 +100,14 @@ export function Dashboard() {
         >
           <h2 className="text-xl font-semibold mb-4">Active Moonbags</h2>
           <div className="space-y-4">
-            {moonbags.map((moonbag, index) => (
+            {stats?.tokens?.map((token: TokenData, index: number) => (
               <TokenPerformance
                 key={index}
-                token={moonbag.token}
-                price={moonbag.value / moonbag.amount}
-                change={moonbag.change}
-                volume="$1.2M"
-                marketCap="$45M"
+                token={token.symbol}
+                price={token.currentPrice}
+                change={token.priceChange}
+                volume={token.volume}
+                marketCap={token.marketCap}
               />
             ))}
           </div>
@@ -96,7 +120,7 @@ export function Dashboard() {
         >
           <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
           <div className="space-y-4">
-            {transactions.map((tx, index) => (
+            {transactions?.map((tx: TransactionData, index: number) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0 }}
@@ -107,11 +131,13 @@ export function Dashboard() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-medium">{tx.type}</h3>
-                    <p className="text-sm text-gray-400">{tx.token}</p>
+                    <p className="text-sm text-gray-400">{tx.token.symbol}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">${tx.value}</p>
-                    <p className="text-sm text-gray-400">{tx.time}</p>
+                    <p className="font-medium">${tx.value.toLocaleString()}</p>
+                    <p className="text-sm text-gray-400">
+                      {new Date(tx.timestamp).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </motion.div>

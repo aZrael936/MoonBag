@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { motion } from "framer-motion";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface TokenPerformanceProps {
   token: string;
@@ -9,7 +9,13 @@ interface TokenPerformanceProps {
   marketCap: string;
 }
 
-export function TokenPerformance({ token, price, change, volume, marketCap }: TokenPerformanceProps) {
+export function TokenPerformance({
+  token,
+  price,
+  change,
+  volume,
+  marketCap,
+}: TokenPerformanceProps) {
   const isPositive = change >= 0;
 
   return (
@@ -22,7 +28,7 @@ export function TokenPerformance({ token, price, change, volume, marketCap }: To
         <h3 className="text-lg font-semibold">{token}</h3>
         <div
           className={`flex items-center gap-1 ${
-            isPositive ? 'text-green-400' : 'text-red-400'
+            isPositive ? "text-green-400" : "text-red-400"
           }`}
         >
           {isPositive ? (
@@ -30,7 +36,7 @@ export function TokenPerformance({ token, price, change, volume, marketCap }: To
           ) : (
             <TrendingDown className="w-4 h-4" />
           )}
-          <span>{change}%</span>
+          <span>{change.toFixed(2)}%</span>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-4">

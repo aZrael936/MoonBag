@@ -1,30 +1,47 @@
-import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useWalletCreation } from '../hooks/useWalletCreation';
-import { Copy, Check, Wallet, Eye, EyeOff } from 'lucide-react';
+import { motion } from "framer-motion";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useWalletCreation } from "../hooks/useWalletCreation";
+import { useAgentWallet } from "../hooks/UseAgentWallet";
+import { Copy, Check, Wallet, Eye, EyeOff } from "lucide-react";
 
 export function Onboarding() {
   const navigate = useNavigate();
   const { wallet, createWallet, copyToClipboard } = useWalletCreation();
+  const { agentWallet, isLoading, saveAgentWallet } = useAgentWallet();
   const [copied, setCopied] = useState({ address: false, privateKey: false });
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [tradingPercentage, setTradingPercentage] = useState(10);
 
-  const handleCopy = async (text: string, type: 'address' | 'privateKey') => {
+  const handleCopy = async (text: string, type: "address" | "privateKey") => {
     await copyToClipboard(text);
-    setCopied(prev => ({ ...prev, [type]: true }));
-    setTimeout(() => setCopied(prev => ({ ...prev, [type]: false })), 2000);
+    setCopied((prev) => ({ ...prev, [type]: true }));
+    setTimeout(() => setCopied((prev) => ({ ...prev, [type]: false })), 2000);
+  };
+
+  const handleCreateWallet = async () => {
+    createWallet();
+    if (wallet) {
+      await saveAgentWallet(wallet);
+    }
   };
 
   const handleSubmit = () => {
-    // TODO: Store user preferences in backend
-    navigate('/dashboard');
+    // TODO: Store trading percentage preference
+    navigate("/dashboard");
   };
 
   const maskPrivateKey = (key: string) => {
     return `${key.slice(0, 6)}...${key.slice(-4)}`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -33,14 +50,16 @@ export function Onboarding() {
       className="max-w-2xl mx-auto"
     >
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8">
-        <h2 className="text-3xl font-bold mb-6 text-center">Setup Your Moonbag Agent</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center">
+          Setup Your Moonbag Agent
+        </h2>
 
         <div className="space-y-6">
-          {!wallet ? (
+          {!agentWallet ? (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={createWallet}
+              onClick={handleCreateWallet}
               className="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center space-x-2"
             >
               <Wallet className="w-5 h-5" />
@@ -55,10 +74,10 @@ export function Onboarding() {
                   </label>
                   <div className="flex items-center space-x-2">
                     <code className="flex-1 bg-gray-800 p-2 rounded font-mono text-sm">
-                      {wallet.address}
+                      {agentWallet.address}
                     </code>
                     <button
-                      onClick={() => handleCopy(wallet.address, 'address')}
+                      onClick={() => handleCopy(agentWallet.address, "address")}
                       className="p-2 hover:bg-gray-700 rounded"
                     >
                       {copied.address ? (
@@ -88,10 +107,14 @@ export function Onboarding() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <code className="flex-1 bg-gray-800 p-2 rounded font-mono text-sm select-none">
-                      {showPrivateKey ? wallet.privateKey : maskPrivateKey(wallet.privateKey)}
+                      {showPrivateKey
+                        ? agentWallet.privateKey
+                        : maskPrivateKey(agentWallet.privateKey)}
                     </code>
                     <button
-                      onClick={() => handleCopy(wallet.privateKey, 'privateKey')}
+                      onClick={() =>
+                        handleCopy(agentWallet.privateKey, "privateKey")
+                      }
                       className="p-2 hover:bg-gray-700 rounded"
                       title="Copy private key"
                     >
@@ -116,7 +139,9 @@ export function Onboarding() {
                     min="1"
                     max="100"
                     value={tradingPercentage}
-                    onChange={(e) => setTradingPercentage(Number(e.target.value))}
+                    onChange={(e) =>
+                      setTradingPercentage(Number(e.target.value))
+                    }
                     className="w-full"
                   />
                   <div className="text-center text-lg font-semibold">

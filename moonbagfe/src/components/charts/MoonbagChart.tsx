@@ -7,17 +7,16 @@ import {
   Tooltip,
 } from "recharts";
 
-const data = [
-  { date: "1 Dec", value: 10 },
-  { date: "2 Dec", value: 12 },
-  { date: "3 Dec", value: 11 },
-  { date: "4 Dec", value: 14 },
-  { date: "5 Dec", value: 13 },
-  { date: "6 Dec", value: 16 },
-  { date: "7 Dec", value: 20 },
-];
+interface ChartData {
+  date: string;
+  value: number;
+}
 
-export function MoonbagChart() {
+interface MoonbagChartProps {
+  data: ChartData[];
+}
+
+export function MoonbagChart({ data = [] }: MoonbagChartProps) {
   return (
     <div className="h-[200px] w-full">
       <ResponsiveContainer width="100%" height="100%">

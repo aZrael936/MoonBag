@@ -139,6 +139,7 @@ class SupabaseService {
       })
       .select()
       .single();
+    console.log("hellow")
 
     if (error) {
       throw error;
@@ -221,7 +222,7 @@ class SupabaseService {
         average_buyback_percentage:
           data.length > 0
             ? data.reduce((sum, tx) => sum + tx.buyback_percentage, 0) /
-              data.length
+            data.length
             : 0,
       },
       tokens_stats: Object.values(tokenStats).map((stat) => ({

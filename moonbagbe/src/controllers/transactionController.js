@@ -7,6 +7,7 @@ const getTransactionsByWallet = async (req, res) => {
     );
     res.status(200).json(transactions);
   } catch (error) {
+    console.log("hiii")
     res.status(500).json({ error: error.message });
   }
 };
