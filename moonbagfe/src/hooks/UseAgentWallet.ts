@@ -13,7 +13,7 @@ export function useAgentWallet() {
   const { address } = useAccount();
   const [agentWallet, setAgentWallet] = useState<AgentWallet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { walletData } = useWalletData();
+  const { addWallet } = useWalletData();
 
   useEffect(() => {
     if (!address) {
@@ -59,23 +59,29 @@ export function useAgentWallet() {
 
   const saveAgentWallet = async (wallet: AgentWallet) => {
     if (!address) return;
+    console.log("----------------------");
 
     try {
       setIsLoading(true);
       const encryptedPrivateKey = encryptPrivateKey(wallet.privateKey);
 
-      const { error } = await supabase.from("agent_wallets").insert({
+      const { data, error } = await supabase.from("agent_wallets").insert({
         user_address: address.toLowerCase(),
         agent_address: wallet.address,
         encrypted_private_key: encryptedPrivateKey,
       });
-
-      if (error) throw error;
-
+      if (data) {
+        console.log("table-insertion:", data);
+      }
       setAgentWallet(wallet);
+      console.log("walletDataaaa:", wallet);
+      console.log("address type:", typeof wallet.address);
+      console.log("addresss:", wallet.address);
 
       // Register wallet with the API
-      await walletData.addWallet.mutateAsync(wallet.address);
+      await addWallet.mutateAsync(wallet.address);
+
+      if (error) throw error;
     } catch (error) {
       console.error("Error saving agent wallet:", error);
       throw error;

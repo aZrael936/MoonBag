@@ -8,6 +8,7 @@ const TokenBuybackService = require("../services/tokenBuybackService");
 const addWallet = async (req, res) => {
   try {
     const { address } = req.body;
+    console.log("aaadresss:", address)
 
     // Validate address
     const checksumAddress = ethers.getAddress(address);
@@ -16,6 +17,8 @@ const addWallet = async (req, res) => {
     const existingWallet = await SupabaseService.getWalletByAddress(
       checksumAddress
     );
+
+    console.log("existingWallet:", existingWallet)
 
     if (existingWallet) {
       // If wallet exists but doesn't have an inhouse wallet, create one

@@ -21,6 +21,7 @@ class SupabaseService {
       })
       .select()
       .single();
+    console.log("hola hola")
 
     if (error) {
       throw error;

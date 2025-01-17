@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ethers } from 'ethers';
+import { useState } from "react";
+import { ethers } from "ethers";
 
 interface WalletState {
   address: string;
@@ -11,17 +11,21 @@ export const useWalletCreation = () => {
 
   const createWallet = () => {
     const newWallet = ethers.Wallet.createRandom();
-    setWallet({
+    const walletData = {
       address: newWallet.address,
       privateKey: newWallet.privateKey,
-    });
+    };
+    setWallet(walletData);
+    console.log("New wallet created:", walletData);
+
+    return walletData;
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error("Failed to copy:", error);
     }
   };
 

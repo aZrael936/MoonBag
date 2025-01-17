@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+// import { useAccount } from "wagmi";
 import { useNavigate } from "react-router-dom";
 import { useWalletCreation } from "../hooks/useWalletCreation";
 import { useAgentWallet } from "../hooks/UseAgentWallet";
@@ -8,10 +9,13 @@ import { Copy, Check, Wallet, Eye, EyeOff } from "lucide-react";
 export function Onboarding() {
   const navigate = useNavigate();
   const { wallet, createWallet, copyToClipboard } = useWalletCreation();
-  const { agentWallet, isLoading, saveAgentWallet } = useAgentWallet();
+  const { isLoading, saveAgentWallet } = useAgentWallet();
+
   const [copied, setCopied] = useState({ address: false, privateKey: false });
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [tradingPercentage, setTradingPercentage] = useState(10);
+  const [isAgentAccCreated, setIsAgentAccCreated] = useState(false);
+  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
 
   const handleCopy = async (text: string, type: "address" | "privateKey") => {
     await copyToClipboard(text);
@@ -20,13 +24,18 @@ export function Onboarding() {
   };
 
   const handleCreateWallet = async () => {
-    createWallet();
-    if (wallet) {
-      await saveAgentWallet(wallet);
-    }
+    console.log("walleeeet:", wallet);
+    const newWallet = createWallet();
+    console.log("newWallleet:", newWallet);
+    await saveAgentWallet(newWallet);
+
+    setIsCreatingWallet(false);
+
+    setIsAgentAccCreated(true);
   };
 
   const handleSubmit = () => {
+    console.log("pooda potta");
     // TODO: Store trading percentage preference
     navigate("/dashboard");
   };
@@ -43,6 +52,10 @@ export function Onboarding() {
     );
   }
 
+  const handleCreateWalletWithLoading = async () => {
+    await handleCreateWallet();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -55,15 +68,22 @@ export function Onboarding() {
         </h2>
 
         <div className="space-y-6">
-          {!agentWallet ? (
+          {!isAgentAccCreated ? (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleCreateWallet}
+              onClick={handleCreateWalletWithLoading}
+              // disabled={isCreatingWallet}
               className="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center space-x-2"
             >
-              <Wallet className="w-5 h-5" />
-              <span>Generate AI Agent Wallet</span>
+              {isCreatingWallet ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+              ) : (
+                <>
+                  <Wallet className="w-5 h-5" />
+                  <span>Generate AI Agent Wallet</span>
+                </>
+              )}
             </motion.button>
           ) : (
             <>
@@ -74,10 +94,12 @@ export function Onboarding() {
                   </label>
                   <div className="flex items-center space-x-2">
                     <code className="flex-1 bg-gray-800 p-2 rounded font-mono text-sm">
-                      {agentWallet.address}
+                      {wallet?.address}
                     </code>
                     <button
-                      onClick={() => handleCopy(agentWallet.address, "address")}
+                      onClick={() =>
+                        wallet?.address && handleCopy(wallet.address, "address")
+                      }
                       className="p-2 hover:bg-gray-700 rounded"
                     >
                       {copied.address ? (
@@ -108,12 +130,15 @@ export function Onboarding() {
                   <div className="flex items-center space-x-2">
                     <code className="flex-1 bg-gray-800 p-2 rounded font-mono text-sm select-none">
                       {showPrivateKey
-                        ? agentWallet.privateKey
-                        : maskPrivateKey(agentWallet.privateKey)}
+                        ? wallet?.privateKey
+                        : wallet?.privateKey
+                        ? maskPrivateKey(wallet.privateKey)
+                        : ""}
                     </code>
                     <button
                       onClick={() =>
-                        handleCopy(agentWallet.privateKey, "privateKey")
+                        wallet?.privateKey &&
+                        handleCopy(wallet.privateKey, "privateKey")
                       }
                       className="p-2 hover:bg-gray-700 rounded"
                       title="Copy private key"

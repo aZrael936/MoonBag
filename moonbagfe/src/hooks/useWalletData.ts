@@ -14,7 +14,13 @@ export function useWalletData() {
   });
 
   const addWallet = useMutation({
-    mutationFn: (walletAddress: string) => walletsApi.add(walletAddress),
+    mutationFn: (walletAddress: string) => {
+      console.log("walletaaaAddresss:", walletAddress);
+      if (!walletAddress) {
+        throw new Error("Wallet address is required");
+      }
+      return walletsApi.add(walletAddress);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallet", address] });
     },
@@ -27,7 +33,12 @@ export function useWalletData() {
     }: {
       walletAddress: string;
       percentage: number;
-    }) => walletsApi.update(walletAddress, percentage),
+    }) => {
+      if (!walletAddress) {
+        throw new Error("Wallet address is required");
+      }
+      return walletsApi.update(walletAddress, percentage);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallet", address] });
     },
