@@ -27,15 +27,15 @@ const api = axios.create({
 // Add request interceptor with better validation
 api.interceptors.request.use((config) => {
   if (config.url?.includes("/wallets/")) {
-    const walletAddress =
+    const address =
       config.method === "get"
         ? config.url.split("/").pop()
-        : config.data?.walletAddress;
+        : config.data?.address;
 
     try {
       // Use ethers to validate the address format
-      if (walletAddress) {
-        ethers.getAddress(walletAddress); // Will throw if invalid
+      if (address) {
+        ethers.getAddress(address); // Will throw if invalid
       }
     } catch {
       throw new Error("Invalid Ethereum address format");
@@ -57,50 +57,49 @@ api.interceptors.response.use(
 
 // Wallet endpoints with better typing and error handling
 export const walletsApi = {
-  add: async (walletAddress: string): Promise<WalletData> => {
-    try {
-      //   const checksumAddress = ethers.getAddress(walletAddress);
-      console.log("walletaddress:", walletAddress);
-      const { data } = await api.post<WalletData>("/api/wallets/add", {
-        walletAddress: walletAddress,
-      });
-      return data;
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        throw error;
-      }
-      throw new Error("Failed to add wallet");
-    }
+  add: async (address: string) => {
+    const response = await api.post<WalletData>("/api/wallets/add", {
+      address: address,
+    });
+    return {
+      data: response.data ?? null, // Ensure data is never undefined
+    };
   },
 
-  remove: async (walletAddress: string): Promise<void> => {
-    const checksumAddress = ethers.getAddress(walletAddress);
+  remove: async (address: string): Promise<void> => {
+    const checksumAddress = ethers.getAddress(address);
     await api.delete("/api/wallets/remove", {
-      data: { walletAddress: checksumAddress },
+      data: { address: checksumAddress },
     });
   },
 
   update: async (
-    walletAddress: string,
+    address: string,
     moonbagPercentage: number
   ): Promise<WalletData> => {
     if (moonbagPercentage < 0 || moonbagPercentage > 100) {
       throw new Error("Moonbag percentage must be between 0 and 100");
     }
-    const checksumAddress = ethers.getAddress(walletAddress);
+    const checksumAddress = ethers.getAddress(address);
     const { data } = await api.post<WalletData>("/api/wallets/update", {
-      walletAddress: checksumAddress,
+      address: checksumAddress,
       moonbagPercentage,
     });
     return data;
   },
 
-  get: async (walletAddress: string): Promise<WalletData> => {
-    const checksumAddress = ethers.getAddress(walletAddress);
-    const { data } = await api.get<WalletData>(
-      `/api/wallets/get/${checksumAddress}`
-    );
-    return data;
+  get: async (address: string) => {
+    try {
+      const response = await api.get<WalletData>(`/api/wallets/get/${address}`);
+      return {
+        data: response.data ?? null, // Ensure data is never undefined
+      };
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        return { data: null }; // Return null for not found
+      }
+      throw error;
+    }
   },
 
   list: async (): Promise<WalletData[]> => {
@@ -111,27 +110,27 @@ export const walletsApi = {
 
 // Transaction endpoints with proper typing
 export const transactionsApi = {
-  getForWallet: async (walletAddress: string): Promise<Transaction[]> => {
-    const checksumAddress = ethers.getAddress(walletAddress);
+  getForWallet: async (address: string): Promise<Transaction[]> => {
+    // const checksumAddress = ethers.getAddress(address);
     const { data } = await api.get<Transaction[]>(
-      `/api/transaction/${checksumAddress}`
+      `/api/transaction/${address}`
     );
     return data;
   },
 
-  getStats: async (walletAddress: string): Promise<TokenStats[]> => {
-    const checksumAddress = ethers.getAddress(walletAddress);
+  getStats: async (address: string): Promise<TokenStats[]> => {
+    // const checksumAddress = ethers.getAddress(address);
     const { data } = await api.get<TokenStats[]>(
-      `/api/transaction/stats/${checksumAddress}`
+      `/api/transaction/stats/${address}`
     );
     return data;
   },
 
   getTokenStats: async (
-    walletAddress: string,
+    address: string,
     tokenAddress: string
   ): Promise<TokenStats> => {
-    const checksumWallet = ethers.getAddress(walletAddress);
+    const checksumWallet = ethers.getAddress(address);
     const checksumToken = ethers.getAddress(tokenAddress);
     const { data } = await api.get<TokenStats>(
       `/api/transaction/stats/${checksumWallet}/${checksumToken}`

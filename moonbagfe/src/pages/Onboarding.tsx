@@ -1,21 +1,66 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-// import { useAccount } from "wagmi";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
+import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { useWalletCreation } from "../hooks/useWalletCreation";
 import { useAgentWallet } from "../hooks/UseAgentWallet";
 import { Copy, Check, Wallet, Eye, EyeOff } from "lucide-react";
-
+interface AgentWallet {
+  address: string;
+  privateKey: string;
+}
 export function Onboarding() {
   const navigate = useNavigate();
   const { wallet, createWallet, copyToClipboard } = useWalletCreation();
-  const { isLoading, saveAgentWallet } = useAgentWallet();
+  const { isLoading, saveUserWallet } = useAgentWallet();
 
   const [copied, setCopied] = useState({ address: false, privateKey: false });
+  const [agentWallet, setAgentWallet] = useState<AgentWallet | null>(null);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [tradingPercentage, setTradingPercentage] = useState(10);
   const [isAgentAccCreated, setIsAgentAccCreated] = useState(false);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+
+  const { address } = useAccount();
+
+  useEffect(() => {
+    if (!address) {
+      return;
+    }
+
+    const fetchAgentWallet = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("wallets")
+          .select("inhouse_wallet_address, private_key")
+          .eq("address", address.toLowerCase())
+          .single();
+
+        if (error) {
+          if (error.code !== "PGRST116") {
+            // Not found error
+            throw error;
+          }
+          setAgentWallet(null);
+          return;
+        }
+
+        console.log("dataaaa:", data);
+
+        if (data) {
+          setAgentWallet({
+            address: data.inhouse_wallet_address,
+            privateKey: data.private_key,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching agent wallet:", error);
+      }
+    };
+
+    fetchAgentWallet();
+  }, []);
 
   const handleCopy = async (text: string, type: "address" | "privateKey") => {
     await copyToClipboard(text);
@@ -27,7 +72,7 @@ export function Onboarding() {
     console.log("walleeeet:", wallet);
     const newWallet = createWallet();
     console.log("newWallleet:", newWallet);
-    await saveAgentWallet(newWallet);
+    await saveUserWallet();
 
     setIsCreatingWallet(false);
 
@@ -43,6 +88,8 @@ export function Onboarding() {
   const maskPrivateKey = (key: string) => {
     return `${key.slice(0, 6)}...${key.slice(-4)}`;
   };
+
+  console.log("aagentWallet:", agentWallet?.address);
 
   if (isLoading) {
     return (
@@ -94,11 +141,14 @@ export function Onboarding() {
                   </label>
                   <div className="flex items-center space-x-2">
                     <code className="flex-1 bg-gray-800 p-2 rounded font-mono text-sm">
-                      {wallet?.address}
+                      {agentWallet?.address
+                        ? maskPrivateKey(agentWallet?.address)
+                        : ""}
                     </code>
                     <button
                       onClick={() =>
-                        wallet?.address && handleCopy(wallet.address, "address")
+                        agentWallet?.address &&
+                        handleCopy(agentWallet.address, "address")
                       }
                       className="p-2 hover:bg-gray-700 rounded"
                     >
@@ -130,15 +180,15 @@ export function Onboarding() {
                   <div className="flex items-center space-x-2">
                     <code className="flex-1 bg-gray-800 p-2 rounded font-mono text-sm select-none">
                       {showPrivateKey
-                        ? wallet?.privateKey
-                        : wallet?.privateKey
-                        ? maskPrivateKey(wallet.privateKey)
+                        ? agentWallet?.privateKey
+                        : agentWallet?.privateKey
+                        ? maskPrivateKey(agentWallet.privateKey)
                         : ""}
                     </code>
                     <button
                       onClick={() =>
-                        wallet?.privateKey &&
-                        handleCopy(wallet.privateKey, "privateKey")
+                        agentWallet?.privateKey &&
+                        handleCopy(agentWallet.privateKey, "privateKey")
                       }
                       className="p-2 hover:bg-gray-700 rounded"
                       title="Copy private key"

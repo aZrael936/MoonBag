@@ -16,9 +16,9 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       const { data, error } = await supabase
-        .from("agent_wallets")
-        .select("agent_address, encrypted_private_key")
-        .eq("user_address", address?.toLowerCase())
+        .from("wallets")
+        .select("inhouse_wallet_address, private_key")
+        .eq("address", address?.toLowerCase())
         .single();
 
       if (data) {

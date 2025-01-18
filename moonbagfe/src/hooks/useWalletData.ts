@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { walletsApi, WalletData } from "../lib/api";
+import { walletsApi } from "../lib/api";
 import { useAccount } from "wagmi";
 
 export function useWalletData() {
@@ -12,15 +12,10 @@ export function useWalletData() {
       address ? walletsApi.get(address).then((res) => res.data) : null,
     enabled: !!address,
   });
+  console.log("walletdata:", walletData);
 
   const addWallet = useMutation({
-    mutationFn: (walletAddress: string) => {
-      console.log("walletaaaAddresss:", walletAddress);
-      if (!walletAddress) {
-        throw new Error("Wallet address is required");
-      }
-      return walletsApi.add(walletAddress);
-    },
+    mutationFn: (walletAddress: string) => walletsApi.add(walletAddress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallet", address] });
     },
@@ -33,12 +28,7 @@ export function useWalletData() {
     }: {
       walletAddress: string;
       percentage: number;
-    }) => {
-      if (!walletAddress) {
-        throw new Error("Wallet address is required");
-      }
-      return walletsApi.update(walletAddress, percentage);
-    },
+    }) => walletsApi.update(walletAddress, percentage),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallet", address] });
     },
