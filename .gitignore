@@ -9,3 +9,5 @@
 */.env.local
 */dist/
 */build/
+
+node_modules
