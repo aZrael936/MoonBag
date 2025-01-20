@@ -7,6 +7,9 @@ import { WETHBalance } from "../components/WETHBalance";
 export function Profile() {
   const { address } = useAccount();
   const { wallet } = useWalletCreation();
+  const maskPublicKey = (key: string) => {
+    return `${key.slice(0, 6)}...${key.slice(-4)}`;
+  };
 
   const settings = [
     {
@@ -51,7 +54,9 @@ export function Profile() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">Primary Wallet</h3>
-                <p className="text-sm text-gray-400">{address}</p>
+                <p className="text-sm text-gray-400">
+                  {address ? maskPublicKey(address) : "Not Connected"}
+                </p>
               </div>
               <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
                 Connected

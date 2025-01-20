@@ -170,3 +170,18 @@ export interface TokenStats {
   numberOfTrades?: number; // Added optional field
   lastTradeTimestamp?: string; // Added optional field
 }
+
+export interface TransactionData {
+  id: number;
+  wallet_address: string;
+  inhouse_wallet_address: string;
+  original_tx_hash: string;
+  buyback_tx_hash: string;
+  token_address: string;
+  sell_amount: number;
+  buyback_amount: number;
+  buyback_percentage: number;
+  status: "completed" | "pending" | "failed";
+  created_at: string;
+  updated_at: string;
+}

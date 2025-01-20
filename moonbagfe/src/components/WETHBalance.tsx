@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Coins, ArrowRight, X, CheckCircle2 } from "lucide-react";
-import { useAccount, useBalance } from "wagmi";
+import { supabase } from "../lib/supabase";
+import { useAccount, useBalance, useWriteContract } from "wagmi";
 import { writeContract } from "@wagmi/core";
 import { parseEther } from "viem";
 import { config } from "../config/wagmi";
@@ -12,14 +13,33 @@ export function WETHBalance() {
   const { address } = useAccount();
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [addy, setAdy] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data, error } = await supabase
+        .from("wallets")
+        .select("inhouse_wallet_address, private_key")
+        .eq("address", address?.toLowerCase())
+        .single();
+
+      if (data) {
+        console.log("daataa:", data);
+        setAdy(data.inhouse_wallet_address);
+      } else {
+        console.log("error:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const { data: balance } = useBalance({
-    address: address,
+    address: addy as `0x${string}`,
     token: WETH_ADDRESS,
   });
 
-  //   const { writeContract, isPending } = useWriteContract();
+  const { isPending } = useWriteContract();
 
   const handleDeposit = async () => {
     if (!amount) return;
@@ -28,15 +48,22 @@ export function WETHBalance() {
       await writeContract(config, {
         abi: [
           {
-            name: "deposit",
+            name: "transfer",
             type: "function",
-            stateMutability: "payable",
-            inputs: [],
-            outputs: [],
+            stateMutability: "nonpayable",
+            inputs: [
+              { name: "recipient", type: "address" },
+              { name: "amount", type: "uint256" },
+            ],
+            outputs: [{ type: "bool" }],
           },
         ],
         address: WETH_ADDRESS,
-        value: parseEther(amount.toString()),
+        functionName: "transfer",
+        args: [
+          addy as `0x${string}`, // Replace with your recipient address
+          parseEther(amount.toString()),
+        ],
       });
 
       setIsSuccess(true);
@@ -73,9 +100,7 @@ export function WETHBalance() {
           </motion.button>
         </div>
         <div className="bg-gray-900/50 rounded-lg p-4">
-          <p className="text-2xl font-bold">
-            {balance?.formatted ?? "0.00"} WETH
-          </p>
+          <p className="text-2xl font-bold">{balance?.formatted} WETH</p>
           <p className="text-sm text-gray-400">
             ≈ $
             {balance?.value
